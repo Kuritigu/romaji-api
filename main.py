@@ -11,10 +11,15 @@ def romaji():
     if not text:
         return jsonify({'result': ''})
     result = kks.convert(text)
-    romaji_text = ''.join([
-        item['hepburn'] if item['hepburn'] else item['orig'] 
-        for item in result
-    ])
+    parts = []
+    for item in result:
+        hepburn = item['hepburn']
+        orig = item['orig']
+        if hepburn:
+            parts.append(hepburn)
+        else:
+            parts.append(orig)
+    romaji_text = ' '.join(parts).strip()
     return jsonify({'result': romaji_text})
 
 @app.route('/health', methods=['GET'])
