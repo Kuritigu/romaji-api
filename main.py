@@ -1,26 +1,26 @@
 from flask import Flask, request, jsonify
-import pykakasi
+import fugashi
 import os
 
 app = Flask(__name__)
-kks = pykakasi.kakasi()
+tagger = fugashi.Tagger()
 
 @app.route('/romaji', methods=['GET'])
 def romaji():
     text = request.args.get('text', '')
     if not text:
         return jsonify({'result': ''})
-    result = kks.convert(text)
+    
     parts = []
-    for item in result:
-        hepburn = item['hepburn']
-        orig = item['orig']
-        if hepburn:
-            parts.append(hepburn)
+    for word in tagger(text):
+        reading = word.feature.kana
+        if reading:
+            # convert katakana reading to romaji
+            parts.append(kata_to_romaji(reading))
         else:
-            parts.append(orig)
-    romaji_text = ' '.join(parts).strip()
-    return jsonify({'result': romaji_text})
+            parts.append(word.surface)
+    
+    return jsonify({'result': ' '.join(parts)})
 
 @app.route('/health', methods=['GET'])
 def health():
