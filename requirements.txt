@@ -1,3 +1,5 @@
 flask
-pykakasi
 gunicorn
+fugashi[unidic]
+unidic-lite
+pykakasi
