@@ -1,9 +1,15 @@
 from flask import Flask, request, jsonify
 import fugashi
+import pykakasi
 import os
 
 app = Flask(__name__)
 tagger = fugashi.Tagger()
+kks = pykakasi.kakasi()
+
+def kata_to_romaji(text):
+    result = kks.convert(text)
+    return ''.join([item['hepburn'] if item['hepburn'] else item['orig'] for item in result])
 
 @app.route('/romaji', methods=['GET'])
 def romaji():
@@ -15,7 +21,6 @@ def romaji():
     for word in tagger(text):
         reading = word.feature.kana
         if reading:
-            # convert katakana reading to romaji
             parts.append(kata_to_romaji(reading))
         else:
             parts.append(word.surface)
