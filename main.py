@@ -1,10 +1,11 @@
 from flask import Flask, request, jsonify
 import fugashi
+import unidic_lite
 import pykakasi
 import os
 
 app = Flask(__name__)
-tagger = fugashi.Tagger()
+tagger = fugashi.Tagger('-d ' + unidic_lite.DICDIR)
 kks = pykakasi.kakasi()
 
 def kata_to_romaji(text):
