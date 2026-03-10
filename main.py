@@ -1,11 +1,11 @@
 from flask import Flask, request, jsonify
 import fugashi
-import unidic_lite
+import unidic
 import pykakasi
 import os
 
 app = Flask(__name__)
-tagger = fugashi.Tagger('-d ' + unidic_lite.DICDIR)
+tagger = fugashi.Tagger('-d ' + unidic.DICDIR)
 kks = pykakasi.kakasi()
 
 # ── Language detection ──────────────────────────────────────────────────────
@@ -27,7 +27,7 @@ def detect_language(text):
 
 def kata_to_romaji(text):
     result = kks.convert(text)
-    return ''.join([item['hepburn'] if item['hepburn'] else item['orig'] for item in result])
+    return ''.join([item['hepburn'] if item['hepburn'] else item['orig'] for item in result]).lower()
 
 def romanize_japanese(text):
     parts = []
@@ -37,7 +37,7 @@ def romanize_japanese(text):
             parts.append(kata_to_romaji(reading))
         else:
             parts.append(word.surface)
-    return ' '.join(parts)
+    return ''.join(parts)
 
 # ── Korean ──────────────────────────────────────────────────────────────────
 
