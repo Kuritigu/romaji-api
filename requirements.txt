@@ -1,5 +1,6 @@
 flask
-gunicorn
 fugashi
 unidic-lite
 pykakasi
+korean-romanizer
+pypinyin
