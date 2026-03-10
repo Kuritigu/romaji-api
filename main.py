@@ -5,7 +5,7 @@ import pykakasi
 import os
 
 app = Flask(__name__)
-tagger = fugashi.Tagger('-d ' + unidic.DICDIR)
+tagger = fugashi.Tagger('-d "{}"'.format(unidic.DICDIR))
 kks = pykakasi.kakasi()
 
 # ── Language detection ──────────────────────────────────────────────────────
@@ -32,7 +32,7 @@ def kata_to_romaji(text):
 def romanize_japanese(text):
     parts = []
     for word in tagger(text):
-        reading = word.feature.reading
+        reading = word.feature.kana
         if reading:
             parts.append(kata_to_romaji(reading))
         else:
