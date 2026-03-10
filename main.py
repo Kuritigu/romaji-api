@@ -1,11 +1,11 @@
 from flask import Flask, request, jsonify
 import fugashi
-import unidic
+import unidic_lite
 import pykakasi
 import os
 
 app = Flask(__name__)
-tagger = fugashi.Tagger('-d "{}"'.format(unidic.DICDIR))
+tagger = fugashi.Tagger('-d ' + unidic_lite.DICDIR)
 kks = pykakasi.kakasi()
 
 # ── Language detection ──────────────────────────────────────────────────────
