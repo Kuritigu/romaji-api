@@ -11,39 +11,33 @@ kks = pykakasi.kakasi()
 # ── Language detection ──────────────────────────────────────────────────────
 
 def detect_language(text):
-    has_kanji = False
     for ch in text:
         cp = ord(ch)
         if 0xAC00 <= cp <= 0xD7A3 or 0x1100 <= cp <= 0x11FF or 0x3130 <= cp <= 0x318F:
             return 'korean'
+    for ch in text:
+        cp = ord(ch)
         if 0x3040 <= cp <= 0x309F or 0x30A0 <= cp <= 0x30FF:
             return 'japanese'
         if 0x4E00 <= cp <= 0x9FFF or 0x3400 <= cp <= 0x4DBF:
-            has_kanji = True
-    return 'japanese' if has_kanji else 'unknown'
+            return 'chinese'
+    return 'unknown'
 
 # ── Japanese ────────────────────────────────────────────────────────────────
 
 def kata_to_romaji(text):
     result = kks.convert(text)
-    return ''.join([item['hepburn'] if item['hepburn'] else item['orig'] for item in result]).lower()
+    return ''.join([item['hepburn'] if item['hepburn'] else item['orig'] for item in result])
 
 def romanize_japanese(text):
-    segments = text.split(' ')
-    romanized = []
-    for segment in segments:
-        if not segment:
-            romanized.append('')
-            continue
-        parts = []
-        for word in tagger(segment):
-            reading = word.feature.kana
-            if reading:
-                parts.append(kata_to_romaji(reading))
-            else:
-                parts.append(word.surface)
-        romanized.append(''.join(parts))
-    return ' '.join(romanized)
+    parts = []
+    for word in tagger(text):
+        reading = word.feature.kana
+        if reading:
+            parts.append(kata_to_romaji(reading))
+        else:
+            parts.append(word.surface)
+    return ' '.join(parts)
 
 # ── Korean ──────────────────────────────────────────────────────────────────
 
