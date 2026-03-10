@@ -31,11 +31,14 @@ def kata_to_romaji(text):
 def romanize_japanese(text):
     parts = []
     for word in tagger(text):
-        reading = word.feature.kana
-        if reading:
-            parts.append(kata_to_romaji(reading))
+        if word.surface == ' ':
+            parts.append(' ')
         else:
-            parts.append(word.surface)
+            reading = word.feature.kana
+            if reading:
+                parts.append(kata_to_romaji(reading))
+            else:
+                parts.append(word.surface)
     return ''.join(parts)
 
 # ── Korean ──────────────────────────────────────────────────────────────────
