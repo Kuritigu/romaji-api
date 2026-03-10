@@ -20,7 +20,7 @@ def detect_language(text):
             return 'japanese'
         if 0x4E00 <= cp <= 0x9FFF or 0x3400 <= cp <= 0x4DBF:
             has_kanji = True
-    return 'chinese' if has_kanji else 'unknown'
+    return 'japanese' if has_kanji else 'unknown'
 
 # ── Japanese ────────────────────────────────────────────────────────────────
 
