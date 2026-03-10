@@ -32,7 +32,7 @@ def kata_to_romaji(text):
 def romanize_japanese(text):
     parts = []
     for word in tagger(text):
-        reading = word.feature.kana
+        reading = word.feature.reading
         if reading:
             parts.append(kata_to_romaji(reading))
         else:
