@@ -29,17 +29,21 @@ def kata_to_romaji(text):
     return ''.join([item['hepburn'] if item['hepburn'] else item['orig'] for item in result]).lower()
 
 def romanize_japanese(text):
-    parts = []
-    for word in tagger(text):
-        if word.surface == ' ':
-            parts.append(' ')
-        else:
+    segments = text.split(' ')
+    romanized = []
+    for segment in segments:
+        if not segment:
+            romanized.append('')
+            continue
+        parts = []
+        for word in tagger(segment):
             reading = word.feature.kana
             if reading:
                 parts.append(kata_to_romaji(reading))
             else:
                 parts.append(word.surface)
-    return ''.join(parts)
+        romanized.append(''.join(parts))
+    return ' '.join(romanized)
 
 # ── Korean ──────────────────────────────────────────────────────────────────
 
