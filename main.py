@@ -3,21 +3,35 @@ import fugashi
 import unidic_lite
 import pykakasi
 import os
+import re
 
 app = Flask(__name__)
 tagger = fugashi.Tagger('-d ' + unidic_lite.DICDIR)
 kks = pykakasi.kakasi()
 
+# ── Language detection ──────────────────────────────────────────────────────
+
+def detect_language(text):
+    """Returns 'japanese', 'korean', 'chinese', or 'unknown'."""
+    for ch in text:
+        cp = ord(ch)
+        if 0xAC00 <= cp <= 0xD7A3 or 0x1100 <= cp <= 0x11FF or 0x3130 <= cp <= 0x318F:
+            return 'korean'
+    for ch in text:
+        cp = ord(ch)
+        if 0x3040 <= cp <= 0x309F or 0x30A0 <= cp <= 0x30FF:
+            return 'japanese'
+        if 0x4E00 <= cp <= 0x9FFF or 0x3400 <= cp <= 0x4DBF:
+            return 'chinese'
+    return 'unknown'
+
+# ── Japanese ────────────────────────────────────────────────────────────────
+
 def kata_to_romaji(text):
     result = kks.convert(text)
     return ''.join([item['hepburn'] if item['hepburn'] else item['orig'] for item in result])
 
-@app.route('/romaji', methods=['GET'])
-def romaji():
-    text = request.args.get('text', '')
-    if not text:
-        return jsonify({'result': ''})
-    
+def romanize_japanese(text):
     parts = []
     for word in tagger(text):
         reading = word.feature.kana
@@ -25,8 +39,77 @@ def romaji():
             parts.append(kata_to_romaji(reading))
         else:
             parts.append(word.surface)
-    
-    return jsonify({'result': ' '.join(parts)})
+    return ' '.join(parts)
+
+# ── Korean ──────────────────────────────────────────────────────────────────
+
+def romanize_korean(text):
+    try:
+        from korean_romanizer.romanizer import Romanizer
+        return Romanizer(text).romanize()
+    except ImportError:
+        pass
+    try:
+        import hangul_romanize
+        from hangul_romanize.rule import academic
+        h = hangul_romanize.Transliter(academic)
+        return h.translit(text)
+    except ImportError:
+        pass
+    raise RuntimeError(
+        "No Korean romanization library found. "
+        "Install one of: korean-romanizer, hangul-romanize"
+    )
+
+# ── Chinese ─────────────────────────────────────────────────────────────────
+
+def romanize_chinese(text):
+    try:
+        from pypinyin import lazy_pinyin, Style
+        return ' '.join(lazy_pinyin(text, style=Style.TONE))
+    except ImportError:
+        pass
+    try:
+        import dragonmapper.transcriptions as tr
+        import dragonmapper.hanzi as hz
+        return hz.to_pinyin(text)
+    except ImportError:
+        pass
+    raise RuntimeError(
+        "No Chinese romanization library found. "
+        "Install one of: pypinyin, dragonmapper"
+    )
+
+# ── Routes ───────────────────────────────────────────────────────────────────
+
+@app.route('/romaji', methods=['GET'])
+def romaji():
+    text = request.args.get('text', '')
+    lang = request.args.get('lang', '').lower()   # optional override
+
+    if not text:
+        return jsonify({'result': '', 'language': 'none'})
+
+    if not lang:
+        lang = detect_language(text)
+
+    try:
+        if lang == 'japanese':
+            result = romanize_japanese(text)
+        elif lang == 'korean':
+            result = romanize_korean(text)
+        elif lang == 'chinese':
+            result = romanize_chinese(text)
+        else:
+            # Pass through – already Latin / symbols / unknown
+            result = text
+
+        return jsonify({'result': result, 'language': lang})
+
+    except RuntimeError as e:
+        return jsonify({'error': str(e), 'language': lang}), 500
+    except Exception as e:
+        return jsonify({'error': f'Romanization failed: {e}', 'language': lang}), 500
 
 @app.route('/health', methods=['GET'])
 def health():
