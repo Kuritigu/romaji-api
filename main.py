@@ -3,7 +3,6 @@ import fugashi
 import unidic_lite
 import pykakasi
 import os
-import re
 
 app = Flask(__name__)
 tagger = fugashi.Tagger('-d ' + unidic_lite.DICDIR)
@@ -12,7 +11,6 @@ kks = pykakasi.kakasi()
 # ── Language detection ──────────────────────────────────────────────────────
 
 def detect_language(text):
-    """Returns 'japanese', 'korean', 'chinese', or 'unknown'."""
     for ch in text:
         cp = ord(ch)
         if 0xAC00 <= cp <= 0xD7A3 or 0x1100 <= cp <= 0x11FF or 0x3130 <= cp <= 0x318F:
@@ -56,10 +54,7 @@ def romanize_korean(text):
         return h.translit(text)
     except ImportError:
         pass
-    raise RuntimeError(
-        "No Korean romanization library found. "
-        "Install one of: korean-romanizer, hangul-romanize"
-    )
+    raise RuntimeError("No Korean romanization library found.")
 
 # ── Chinese ─────────────────────────────────────────────────────────────────
 
@@ -69,47 +64,53 @@ def romanize_chinese(text):
         return ' '.join(lazy_pinyin(text, style=Style.TONE))
     except ImportError:
         pass
-    try:
-        import dragonmapper.transcriptions as tr
-        import dragonmapper.hanzi as hz
-        return hz.to_pinyin(text)
-    except ImportError:
-        pass
-    raise RuntimeError(
-        "No Chinese romanization library found. "
-        "Install one of: pypinyin, dragonmapper"
-    )
+    raise RuntimeError("No Chinese romanization library found.")
+
+# ── Shared romanize ─────────────────────────────────────────────────────────
+
+def romanize(text, lang=None):
+    if not lang:
+        lang = detect_language(text)
+    if lang == 'japanese':
+        return romanize_japanese(text)
+    elif lang == 'korean':
+        return romanize_korean(text)
+    elif lang == 'chinese':
+        return romanize_chinese(text)
+    return text
 
 # ── Routes ───────────────────────────────────────────────────────────────────
 
 @app.route('/romaji', methods=['GET'])
 def romaji():
     text = request.args.get('text', '')
-    lang = request.args.get('lang', '').lower()   # optional override
-
+    lang = request.args.get('lang', '').lower()
     if not text:
         return jsonify({'result': '', 'language': 'none'})
-
-    if not lang:
-        lang = detect_language(text)
-
     try:
-        if lang == 'japanese':
-            result = romanize_japanese(text)
-        elif lang == 'korean':
-            result = romanize_korean(text)
-        elif lang == 'chinese':
-            result = romanize_chinese(text)
-        else:
-            # Pass through – already Latin / symbols / unknown
-            result = text
-
+        lang = lang or detect_language(text)
+        result = romanize(text, lang)
         return jsonify({'result': result, 'language': lang})
-
-    except RuntimeError as e:
-        return jsonify({'error': str(e), 'language': lang}), 500
     except Exception as e:
-        return jsonify({'error': f'Romanization failed: {e}', 'language': lang}), 500
+        return jsonify({'error': str(e), 'language': lang}), 500
+
+@app.route('/romaji_batch', methods=['POST'])
+def romaji_batch():
+    data = request.get_json()
+    if not data or 'lines' not in data:
+        return jsonify({'error': 'Missing lines'}), 400
+
+    results = []
+    for line in data['lines']:
+        if not line or line.startswith('♪'):
+            results.append(line)
+            continue
+        try:
+            results.append(romanize(line))
+        except Exception:
+            results.append(line)
+
+    return jsonify({'results': results})
 
 @app.route('/health', methods=['GET'])
 def health():
