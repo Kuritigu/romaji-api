@@ -11,17 +11,16 @@ kks = pykakasi.kakasi()
 # ── Language detection ──────────────────────────────────────────────────────
 
 def detect_language(text):
+    has_kanji = False
     for ch in text:
         cp = ord(ch)
         if 0xAC00 <= cp <= 0xD7A3 or 0x1100 <= cp <= 0x11FF or 0x3130 <= cp <= 0x318F:
             return 'korean'
-    for ch in text:
-        cp = ord(ch)
         if 0x3040 <= cp <= 0x309F or 0x30A0 <= cp <= 0x30FF:
             return 'japanese'
         if 0x4E00 <= cp <= 0x9FFF or 0x3400 <= cp <= 0x4DBF:
-            return 'chinese'
-    return 'unknown'
+            has_kanji = True
+    return 'japanese' if has_kanji else 'unknown'
 
 # ── Japanese ────────────────────────────────────────────────────────────────
 
